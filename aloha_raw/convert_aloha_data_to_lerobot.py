@@ -1,9 +1,3 @@
-"""
-Script to convert Aloha hdf5 data to the LeRobot dataset v2.0 format.
-
-Example usage: uv run examples/aloha_real/convert_aloha_data_to_lerobot.py --raw-dir /path/to/raw/data --repo-id <org>/<dataset-name>
-"""
-
 import dataclasses
 from pathlib import Path
 import shutil
@@ -249,7 +243,7 @@ def port_aloha(
     task: str = "DEBUG",
     *,
     episodes: list[int] | None = None,
-    push_to_hub: bool = True,
+    push_to_hub: bool = False,
     is_mobile: bool = False,
     mode: Literal["video", "image"] = "image",
     dataset_config: DatasetConfig = DEFAULT_DATASET_CONFIG,
