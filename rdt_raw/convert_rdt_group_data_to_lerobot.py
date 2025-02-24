@@ -13,7 +13,7 @@ import tqdm
 import tyro
 
 SHAPE_14 = (14,)
-FPS = 10
+FPS = 6
 
 
 def create_empty_dataset(

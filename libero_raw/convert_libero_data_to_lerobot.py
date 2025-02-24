@@ -34,7 +34,7 @@ RAW_DATASET_NAMES = [
 ]  # For simplicity we will combine multiple Libero datasets into one training dataset
 
 
-def main(data_dir: str, *, push_to_hub: bool = False):
+def lerobot_builder(data_dir: str, *, push_to_hub: bool = False):
     # Clean up any existing dataset in the output directory
     output_path = LEROBOT_HOME / REPO_NAME
     if output_path.exists():
@@ -103,4 +103,4 @@ def main(data_dir: str, *, push_to_hub: bool = False):
 
 
 if __name__ == "__main__":
-    tyro.cli(main)
+    tyro.cli(lerobot_builder)
