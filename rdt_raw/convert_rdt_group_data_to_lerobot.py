@@ -1,3 +1,5 @@
+import os
+import time
 import dataclasses
 from pathlib import Path
 import shutil
@@ -13,7 +15,7 @@ import tqdm
 import tyro
 
 SHAPE_14 = (14,)
-FPS = 6
+FPS = 20
 
 
 def create_empty_dataset(
@@ -112,12 +114,14 @@ def get_cameras_depth(hdf5_files: list[Path]) -> list[str]:
         # ignore depth channel, not currently handled
         return [key for key in ep["/observations/images_depth"].keys()]
 
-def has_velocity(hdf5_files: list[Path]) -> bool:
+def has_velocity(hdf5_folder: list[Path]) -> bool:
+    hdf5_files = sorted(hdf5_folder[0].glob("episode_*.hdf5"))
     with h5py.File(hdf5_files[0], "r") as ep:
         return "/observations/qvel" in ep
 
 
-def has_effort(hdf5_files: list[Path]) -> bool:
+def has_effort(hdf5_folder: list[Path]) -> bool:
+    hdf5_files = sorted(hdf5_folder[0].glob("episode_*.hdf5"))
     with h5py.File(hdf5_files[0], "r") as ep:
         return "/observations/effort" in ep
 
@@ -256,20 +260,34 @@ def lerobot_builder(
             raise ValueError("raw_repo_id must be provided if raw_dir does not exist")
         download_raw(raw_dir, repo_id=raw_repo_id)
 
-    hdf5_files = sorted(raw_dir.glob("episode_*.hdf5"))
+    all_paths = raw_dir.glob("*")
+    hdf5_folders = [p for p in all_paths if os.path.isdir(p)]
+
     dataset = create_empty_dataset(
         repo_id,
         robot_type="rdt",
         mode=mode,
-        has_effort=has_effort(hdf5_files),
-        has_velocity=has_velocity(hdf5_files),
+        has_effort=has_effort(hdf5_folders),
+        has_velocity=has_velocity(hdf5_folders),
     )
-    dataset = populate_dataset(
-        dataset,
-        hdf5_files,
-        task=task,
-        episodes=episodes,
-    )
+    for task_dir in hdf5_folders:
+        # try:
+        task = task_dir.name
+        task_start_time = time.time()
+        hdf5_files = sorted(task_dir.glob("episode_*.hdf5"))
+
+        dataset = populate_dataset(
+            dataset,
+            hdf5_files,
+            task=task,
+            episodes=episodes,
+        )
+
+
+        task_end_time = time.time()
+        print(f"Finish task {task_dir.name} in {(task_end_time - task_start_time):.2f} seconds")
+        # except Exception as ex:
+        #     print(f"Error task {task_dir.name} : {ex}")
     dataset.consolidate()
 
     if push_to_hub:
