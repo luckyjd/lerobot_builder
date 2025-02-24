@@ -1,5 +1,6 @@
 import os
 import time
+import json
 import dataclasses
 from pathlib import Path
 import shutil
@@ -270,6 +271,7 @@ def lerobot_builder(
         has_effort=has_effort(hdf5_folders),
         has_velocity=has_velocity(hdf5_folders),
     )
+    instruction_object = {}
     for task_dir in hdf5_folders:
         # try:
         task = task_dir.name
@@ -282,16 +284,38 @@ def lerobot_builder(
             task=task,
             episodes=episodes,
         )
-
-
+        instruction_object = add_instruction(instruction_object, task_dir)
         task_end_time = time.time()
         print(f"Finish task {task_dir.name} in {(task_end_time - task_start_time):.2f} seconds")
         # except Exception as ex:
         #     print(f"Error task {task_dir.name} : {ex}")
     dataset.consolidate()
+    write_instruction_file(instruction_object, LEROBOT_HOME / repo_id)
 
     if push_to_hub:
         dataset.push_to_hub()
+
+
+def add_instruction(instruction_object, task_dir):
+    instruction_dir = task_dir / "expanded_instruction_gpt-4-turbo.json"
+    if not instruction_dir.exists():
+        instruction_dir = task_dir / "expanded_instruction_None.json"
+
+    if not instruction_dir.exists():
+        return ""
+
+    with open(instruction_dir, "r", encoding="utf-8") as file:
+        json_data = json.load(file)
+
+    instruction_object.update({task_dir.name: json_data})
+    return instruction_object
+
+
+def write_instruction_file(instruction_object, output_dir):
+    instruction_file = Path(output_dir) / "meta/instruction.json"
+    instruction_file.parent.mkdir(parents=True, exist_ok=True)
+    with open(instruction_file, "w", encoding="utf-8") as file:
+        json.dump(instruction_object, file, indent=4, ensure_ascii=False)
 
 
 # def lerobot_test(
